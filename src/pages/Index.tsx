@@ -17,7 +17,7 @@ const Index = () => {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">MediKit Manager</h1>
           <p className="text-gray-600">
-            Manage medical kits across different locations
+            Gestisci i kit medici in diverse località
           </p>
         </div>
 
@@ -29,7 +29,10 @@ const Index = () => {
         {selectedLocation && (
           <div className="space-y-8">
             <FileUpload onFileUpload={handleFileUpload} />
-            <DataTable data={data} />
+            <DataTable 
+              data={data} 
+              selectedLocation={selectedLocation}
+            />
           </div>
         )}
       </div>
