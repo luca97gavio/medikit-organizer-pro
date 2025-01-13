@@ -25,8 +25,16 @@ import { Edit2, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+interface DataItem {
+  vehicle: string;
+  licensePlate: string;
+  product: string;
+  expiryDate?: string;
+  [key: string]: string | undefined;
+}
+
 interface DataTableProps {
-  data: Record<string, any>[];
+  data: DataItem[];
   selectedLocation: string;
 }
 
@@ -37,8 +45,9 @@ export function DataTable({ data, selectedLocation }: DataTableProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
 
   // Group data by vehicle and license plate
-  const groupedData = data.reduce((acc: { [key: string]: any[] }, item) => {
-    const key = `${item.vehicle || 'N/A'}-${item.licensePlate || 'N/A'}`;
+  const groupedData = data.reduce((acc: { [key: string]: DataItem[] }, item) => {
+    if (!item?.vehicle || !item?.licensePlate) return acc;
+    const key = `${item.vehicle}-${item.licensePlate}`;
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -50,19 +59,23 @@ export function DataTable({ data, selectedLocation }: DataTableProps) {
   useEffect(() => {
     const checkExpiryDates = () => {
       const today = new Date();
-      const oneMonthFromNow = new Date(today.setMonth(today.getMonth() + 1));
-      const oneWeekFromNow = new Date(today.setDate(today.getDate() + 7));
+      const oneMonthFromNow = new Date(today.getTime());
+      oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+      
+      const oneWeekFromNow = new Date(today.getTime());
+      oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
 
       data.forEach(item => {
         if (!item.expiryDate) return;
         
-        const expiryDate = new Date(item.expiryDate.split('/').reverse().join('-'));
+        const [month, year] = item.expiryDate.split('/');
+        const expiryDate = new Date(parseInt(year), parseInt(month) - 1);
         
-        if (expiryDate <= oneMonthFromNow) {
+        if (expiryDate <= oneMonthFromNow && expiryDate > oneWeekFromNow) {
           toast({
             title: "Avviso Scadenza",
             description: `${item.product} scadrà il ${item.expiryDate} (${item.vehicle} - ${item.licensePlate})`,
-            variant: "warning",
+            variant: "default",
           });
         } else if (expiryDate <= oneWeekFromNow) {
           toast({
@@ -107,7 +120,7 @@ export function DataTable({ data, selectedLocation }: DataTableProps) {
 
   const vehiclePlateOptions = Object.keys(groupedData);
 
-  if (!data.length) return null;
+  if (!data?.length) return null;
 
   return (
     <div className="space-y-6">
@@ -131,12 +144,12 @@ export function DataTable({ data, selectedLocation }: DataTableProps) {
         <Card key={index} className="bg-white/50 backdrop-blur-lg">
           <CardHeader className="flex flex-row justify-between items-center">
             <CardTitle className="text-xl font-semibold text-gray-800">
-              {items[0].vehicle} - {items[0].licensePlate}
+              {items.vehicle} - {items.licensePlate}
             </CardTitle>
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => handleDelete(`${items[0].vehicle}-${items[0].licensePlate}`)}
+              onClick={() => handleDelete(`${items.vehicle}-${items.licensePlate}`)}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -145,7 +158,7 @@ export function DataTable({ data, selectedLocation }: DataTableProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {Object.keys(items[0] || {})
+                  {Object.keys(items || {})
                     .filter(header => header !== 'vehicle' && header !== 'licensePlate')
                     .map((header) => (
                       <TableHead key={header} className="font-semibold">
@@ -156,43 +169,41 @@ export function DataTable({ data, selectedLocation }: DataTableProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item, rowIndex) => (
-                  <TableRow key={rowIndex}>
-                    {Object.entries(item)
-                      .filter(([key]) => key !== 'vehicle' && key !== 'licensePlate')
-                      .map(([key, value]) => (
-                        <TableCell key={key}>
-                          {editingItem === `${rowIndex}-${key}` ? (
-                            <Input
-                              value={editedValues[key] || value}
-                              onChange={(e) => handleEdit(`${rowIndex}`, key, e.target.value)}
-                            />
-                          ) : (
-                            value
-                          )}
-                        </TableCell>
-                      ))}
-                    <TableCell>
-                      {editingItem === `${rowIndex}` ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSave(`${rowIndex}`)}
-                        >
-                          Salva
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingItem(`${rowIndex}`)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {items && Object.entries(items)
+                  .filter(([key]) => key !== 'vehicle' && key !== 'licensePlate')
+                  .map(([key, value], rowIndex) => (
+                    <TableRow key={rowIndex}>
+                      <TableCell>
+                        {editingItem === `${rowIndex}-${key}` ? (
+                          <Input
+                            value={editedValues[key] || value || ''}
+                            onChange={(e) => handleEdit(`${rowIndex}`, key, e.target.value)}
+                          />
+                        ) : (
+                          value || ''
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingItem === `${rowIndex}` ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSave(`${rowIndex}`)}
+                          >
+                            Salva
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingItem(`${rowIndex}`)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </CardContent>
