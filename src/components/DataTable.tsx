@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 
 interface DataTableProps {
-  data: any[];
+  data: Record<string, any>[];
 }
 
 export function DataTable({ data }: DataTableProps) {
@@ -34,7 +34,7 @@ export function DataTable({ data }: DataTableProps) {
     <div className="space-y-6">
       {Object.entries(groupedData).map(([key, items], index) => {
         const [vehicle, licensePlate] = key.split('-');
-        const headers = Object.keys(items[0]).filter(
+        const headers = Object.keys(items[0] || {}).filter(
           header => header !== 'vehicle' && header !== 'licensePlate'
         );
 

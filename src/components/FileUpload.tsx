@@ -20,16 +20,26 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
         const lines = csvData.split("\n");
         const headers = lines[0].split(",");
         
+        // Map Italian headers to English ones
+        const headerMapping: { [key: string]: string } = {
+          'Automezzo': 'vehicle',
+          'Targa': 'licensePlate',
+          'Modello': 'model',
+          'Quantità': 'quantity',
+          'Prodotto': 'product',
+          'Data scadenza medicinale': 'expiryDate'
+        };
+
         // Validate required columns
-        const requiredColumns = ['vehicle', 'licensePlate'];
+        const requiredColumns = ['Automezzo', 'Targa'];
         const missingColumns = requiredColumns.filter(
-          col => !headers.map(h => h.trim().toLowerCase()).includes(col.toLowerCase())
+          col => !headers.map(h => h.trim()).includes(col)
         );
 
         if (missingColumns.length > 0) {
           toast({
             title: "Error",
-            description: `Missing required columns: ${missingColumns.join(", ")}`,
+            description: `Colonne richieste mancanti: ${missingColumns.join(", ")}`,
             variant: "destructive",
           });
           return;
@@ -38,7 +48,8 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
         const data = lines.slice(1).map((line) => {
           const values = line.split(",");
           return headers.reduce((obj: any, header, index) => {
-            obj[header.trim()] = values[index]?.trim();
+            const mappedHeader = headerMapping[header.trim()] || header.trim();
+            obj[mappedHeader] = values[index]?.trim();
             return obj;
           }, {});
         });
@@ -46,12 +57,12 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
         onFileUpload(data);
         toast({
           title: "Success",
-          description: "File uploaded successfully",
+          description: "File caricato con successo",
         });
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to parse CSV file",
+          description: "Errore durante l'analisi del file CSV",
           variant: "destructive",
         });
       }
@@ -77,7 +88,7 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
     } else {
       toast({
         title: "Error",
-        description: "Please upload a CSV file",
+        description: "Per favore carica un file CSV",
         variant: "destructive",
       });
     }
@@ -95,9 +106,9 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
       onDrop={handleDrop}
     >
       <Upload className="mx-auto h-12 w-12 text-gray-400" />
-      <h3 className="mt-2 text-sm font-semibold">Upload CSV file</h3>
+      <h3 className="mt-2 text-sm font-semibold">Carica file CSV</h3>
       <p className="mt-1 text-sm text-gray-500">
-        CSV must include 'vehicle' and 'licensePlate' columns
+        Il CSV deve includere le colonne 'Automezzo' e 'Targa'
       </p>
       <input
         type="file"
@@ -114,7 +125,7 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
         className="mt-4"
         onClick={() => document.getElementById("file-upload")?.click()}
       >
-        Select File
+        Seleziona File
       </Button>
     </div>
   );
