@@ -19,6 +19,22 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
         const csvData = event.target?.result as string;
         const lines = csvData.split("\n");
         const headers = lines[0].split(",");
+        
+        // Validate required columns
+        const requiredColumns = ['vehicle', 'licensePlate'];
+        const missingColumns = requiredColumns.filter(
+          col => !headers.map(h => h.trim().toLowerCase()).includes(col.toLowerCase())
+        );
+
+        if (missingColumns.length > 0) {
+          toast({
+            title: "Error",
+            description: `Missing required columns: ${missingColumns.join(", ")}`,
+            variant: "destructive",
+          });
+          return;
+        }
+
         const data = lines.slice(1).map((line) => {
           const values = line.split(",");
           return headers.reduce((obj: any, header, index) => {
@@ -26,6 +42,7 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
             return obj;
           }, {});
         });
+
         onFileUpload(data);
         toast({
           title: "Success",
@@ -79,7 +96,9 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
     >
       <Upload className="mx-auto h-12 w-12 text-gray-400" />
       <h3 className="mt-2 text-sm font-semibold">Upload CSV file</h3>
-      <p className="mt-1 text-sm text-gray-500">Drag and drop or click to select</p>
+      <p className="mt-1 text-sm text-gray-500">
+        CSV must include 'vehicle' and 'licensePlate' columns
+      </p>
       <input
         type="file"
         accept=".csv"
